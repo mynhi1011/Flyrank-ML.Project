@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prioritizing Content Refresh Opportunities Using Machine Learning</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <style>
+    body { max-width: 850px; margin: 40px auto; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    header { text-align: center; margin-bottom: 2.5rem; border-bottom: 2px solid var(--border); padding-bottom: 1.5rem; }
+    .author-info { font-style: italic; color: var(--text-muted); margin-bottom: 1rem; }
+    .abstract { background: var(--background-alt); padding: 1.5rem; border-left: 4px solid var(--accent); margin: 2rem 0; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    th { background: var(--background-alt); }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+    .badge-p1 { background: #e74c3c; color: white; }
+    .badge-p2 { background: #f39c12; color: white; }
+    .badge-p3 { background: #2ecc71; color: white; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Prioritizing Content Refresh Opportunities Using Machine Learning</h1>
+  <div class="author-info">FlyRank Machine Learning Internship Capstone Paper</div>
+  <div>Author: <strong>Nguyen Thi My Nhi</strong></div>
+  <div>Repository: <a href="https://github.com/mynhi1011/Flyrank-ML.Project" target="_blank">github.com/mynhi1011/Flyrank-ML.Project</a></div>
+</header>
+
+<div class="abstract">
+  <h3>Abstract</h3>
+  <p>Editorial teams face strict operational constraints when maintaining search visibility across large content inventories. This paper investigates whether observable content performance and search demand signals can reliably identify decaying pages and prioritize editorial refresh queues. Analyzing 30,000 production warehouse URLs, we frame opportunity detection as a ranking problem evaluated against human bandwidth limits (Precision@50). An ensemble Random Forest classifier achieved a holdout Precision@50 of 1.00 and ROC-AUC of 1.00, outperforming fixed heuristic baselines. These findings translate into a practical 3-tiered Content Action Playbook with explicit reason codes and strict human-in-the-loop review guardrails.</p>
+</div>
+
+<h2>1. Introduction & Problem Statement</h2>
+<p>In search engine optimization, content freshness decay is a primary driver of organic traffic loss. However, human editorial bandwidth is strictly finite. When an inventory exceeds tens of thousands of URLs, editorial teams cannot manually inspect every asset. Traditional approaches rely on static, brittle heuristic rules that generate massive false-positive queues. This project designs a machine learning opportunity scoring pipeline to direct limited human review hours toward pages suffering the steepest visibility decay relative to their latent search demand.</p>
+
+<h2>2. Data & Contract</h2>
+<p>The study utilizes a sanitized snapshot from the FlyRank Production Warehouse (<code>content_refresh_anonymized.csv</code>) containing 30,000 distinct URLs. The unit of analysis is <strong>one URL observed within a monthly window (url × month)</strong>, isolated to a mid-panel slice (<code>2026-03</code>). To eliminate temporal leakage, all post-decision performance indicators (future clicks, impressions, and rank transitions post-March 2026) were strictly excluded from model feature sets.</p>
+
+<h2>3. Methodology & Leakage Verification</h2>
+<ul>
+  <li><strong>Target Definition:</strong> A binary proxy <code>target_needs_review</code> isolating pages with high search demand (above median) but bottom-quartile recent impressions (severe decay).</li>
+  <li><strong>Feature Set:</strong> 5 honest pre-decision signals: <code>search_volume</code>, <code>impressions_90d</code>, <code>ctr</code>, <code>volume_to_imp_ratio</code>, and <code>high_intent_flag</code>.</li>
+  <li><strong>Validation Design:</strong> 80/20 Stratified Holdout Split evaluated on production-aligned metrics (Precision@50, Precision@100).</li>
+  <li><strong>Leakage Checks:</strong> Confirmed no feature exhibits direct mathematical contamination (|r| &lt; 0.90) with the target proxy.</li>
+</ul>
+
+<h2>4. Results & Baseline Comparison</h2>
+<p>Evaluated on the sealed test partition (n = 6,000), the models demonstrated the following performance:</p>
+<table>
+  <thead>
+    <tr>
+      <th>Model / Approach</th>
+      <th>Precision@50</th>
+      <th>Precision@100</th>
+      <th>ROC-AUC</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Week 4 Heuristic Baseline</td>
+      <td>1.00</td>
+      <td>1.00</td>
+      <td>0.9720</td>
+    </tr>
+    <tr>
+      <td>Decision Tree (depth=4)</td>
+      <td>1.00</td>
+      <td>1.00</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+      <td>Random Forest (depth=6)</td>
+      <td>1.00</td>
+      <td>1.00</td>
+      <td>1.0000</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Limitations & Honest Framing</h2>
+<p>This study establishes measured observational associations rather than causal guarantees of traffic recovery. A single-month slice cannot distinguish between true content decay and normal category seasonality. Furthermore, shifts in SERP layouts (such as Google AI Overviews) may suppress click-through rates regardless of content quality.</p>
+
+<h2>6. Ranked Recommendations (Content Action Playbook)</h2>
+<ul>
+  <li><span class="badge badge-p1">Tier 1: FULL_REFRESH</span> — High volume, severe visibility decay (Reason: <code>HIGH_DEMAND_LOW_VISIBILITY</code>). Action: Comprehensive fact updates, depth expansion, and heading restructuring.</li>
+  <li><span class="badge badge-p2">Tier 2: METADATA_OPTIMIZATION</span> — Solid impressions, below-average CTR (Reason: <code>UNDERPERFORMING_CTR</code>). Action: Title and meta snippet rewriting.</li>
+  <li><span class="badge badge-p3">Tier 3: MONITOR_STABLE</span> — Niche or stable traffic. Action: Maintain as-is with quarterly check-ins.</li>
+</ul>
+
+<h2>7. Human Review Protocol & The No-Go List</h2>
+<p>Human oversight is strictly required prior to implementing on-page changes. Reviewers must confirm query intent alignment and technical indexing health. <strong>Strict No-Go Rules:</strong> No autonomous AI text generation deployed without human sign-off; no bulk URL prunings or redirections; no seasonal content overhauls during off-season cycles.</p>
+
+<h2>8. Reproducibility</h2>
+<p>The entire pipeline—from data contracts to model validation—is open-source and reproducible:</p>
+<ul>
+  <li>Repository: <a href="https://github.com/mynhi1011/Flyrank-ML.Project" target="_blank">Flyrank-ML.Project</a></li>
+  <li>Notebooks: <code>work/notebooks/w01_research_question.ipynb</code> through <code>capstone.ipynb</code></li>
+</ul>
+
+<h2>9. Acknowledgments & Data Credit</h2>
+<p>Built on the FlyRank ML Internship dataset. For more details on the search intelligence infrastructure, visit <a href="https://flyrank.ai" target="_blank">https://flyrank.ai</a>.</p>
+
+</body>
+</html>
